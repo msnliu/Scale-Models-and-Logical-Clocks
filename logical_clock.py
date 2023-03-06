@@ -4,29 +4,23 @@ import socket
 import threading
 import time
 import random
-
 class LamportClock:
     def __init__(self, tick_rate):
         self.time = 0
         self.lock = threading.Lock()
         self.tick_rate = tick_rate
-    
     def increment(self):
         with self.lock:
             self.time += 1
-    
     def update(self, other_time):
         with self.lock:
             self.time = max(self.time, other_time) + 1
-    
     def get_time(self):
         with self.lock:
             return self.time
-    
     def wait(self):
         # Wait for a certain amount of time based on the tick rate
         time.sleep(1/self.tick_rate)
-
 class VirtualMachine:
     def __init__(self, config, idx):
         self.host = config[0]
@@ -35,7 +29,6 @@ class VirtualMachine:
         self.clock = LamportClock(random.randint(1, 6))
         self.queue = []
         self.log_file = open(f"vm_{self.id}.log", "w")
-    
     def receive_messages(self, conn):
         # Log the connection
         print(f"Connected to {conn.getpeername()}\n")
@@ -47,13 +40,6 @@ class VirtualMachine:
             data_val, time_val = data.decode('ascii').split(",")
             # Add the received message to the local message queue
             self.queue.append((data_val, int(time_val)))
-            # Update the logical clock
-            prev_time = self.clock.get_time()
-            self.clock.update(int(time_val))
-            # Log the received message
-            # self.log_file.write(f"Machine {self.id} received message {data_val} at global time {time.time()} with new logical clock updated {time_val} from prev time {prev_time} \n")
-            # self.log_file.flush()
-
     def connect(self,ports):
         sockets = []
         for p in ports:
@@ -73,17 +59,14 @@ class VirtualMachine:
         # Log the sent message
         self.log_file.write(f"Machine {self.id} Sent message {message} at global time {time.time()} with current logical clock {time_val}\n")
         self.log_file.flush()
-
-    
     def run(self,ports):
-        # ports = [port1,port2]
         sockets = self.connect(ports)
         while True:
             if len(self.queue) > 0:
                 data_val, time_val = self.queue.pop(0)
-                self.log_file.write(f"Machine {self.id} received message {data_val} at global time {time.time()} with current logical clock {time_val} with current queue length : {len(self.queue)} \n")
-                self.log_file.flush()
                 self.clock.update(int(time_val))
+                self.log_file.write(f"Machine {self.id} received message from Machine {data_val} at global time {time.time()} with current logical clock {time_val} with current queue length : {len(self.queue)} \n")
+                self.log_file.flush()
             else:
                 rand_val = random.randint(1, 10)
                 if rand_val == 1:
@@ -99,11 +82,9 @@ class VirtualMachine:
                     self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with logical clock updated {self.clock.get_time()}\n")
                     self.log_file.flush()
             self.clock.wait()
-            
-
 def init_machine(vm):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    PORT = int(vm.ports[vm.id])
+    PORT = int(vm.ports[0])
     HOST = str(vm.host)
     print(f"Starting server on port {PORT}")
     s.bind((HOST, PORT))
@@ -112,7 +93,6 @@ def init_machine(vm):
         conn, addr = s.accept()
         threading.Thread(target=vm.receive_messages, args=(conn,)).start()
         print(f"Connection accepted for vm {vm.id} at global time {time.time()} with logical clock {vm.clock.get_time()}\n")
-
 def machine(config, idx):
     vm = VirtualMachine(config, idx)
     init_thread = threading.Thread(target=init_machine, args=(vm,))
@@ -122,7 +102,6 @@ def machine(config, idx):
     # Extensible to multiple producers
     prod_thread = threading.Thread(target=vm.run, args=(config[2:],))
     prod_thread.start()
-
 if __name__ == '__main__':
     localHost = "127.0.0.1"
     port1 = 2050
