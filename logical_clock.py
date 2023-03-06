@@ -24,6 +24,7 @@ class LamportClock:
             return self.time
     
     def wait(self):
+        # Wait for a certain amount of time based on the tick rate
         time.sleep(1/self.tick_rate)
 
 class VirtualMachine:
@@ -36,31 +37,42 @@ class VirtualMachine:
         self.log_file = open(f"vm_{self.id}.log", "w")
     
     def connect(self):
+        # Connect to all other virtual machines in the system
         for port in self.ports:
             if port != self.ports[self.id]:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((self.host, port))
+                # Start a new thread to receive messages on this socket
                 threading.Thread(target=self.receive_messages, args=(s,)).start()
     
     def receive_messages(self, conn):
+        # Log the connection
         print(f"Connected to {conn.getpeername()}\n")
         while True:
+            # Receive a message on this connection
             data = conn.recv(1024)
             if not data:
                 break
             data_val, time_val = data.decode('ascii').split(",")
+            # Add the received message to the local message queue
             self.queue.append((data_val, int(time_val)))
+            # Log the received message
             self.log_file.write(f"Received message {data_val} at global time {time.time()} with logical clock {time_val}\n")
             self.log_file.flush()
+            # Update the logical clock
             self.clock.update(int(time_val))
     
     def send_message(self, conn):
-        code_val = str(self.id)
+        # Get the current time from the logical clock
         time_val = self.clock.get_time()
-        message = f"{code_val},{time_val}"
+        # Format the message to include the sender's ID and logical clock value
+        message = f"{self.id},{time_val}"
+        # Send the message on the connection
         conn.send(message.encode('ascii'))
+        # Log the sent message
         self.log_file.write(f"Sent message {message} at global time {time.time()} with logical clock {time_val}\n")
         self.log_file.flush()
+        # Increment the logical clock
         self.clock.increment()
     
     def run(self):
@@ -116,9 +128,9 @@ def machine(config, idx):
 
 if __name__ == '__main__':
     localHost = "127.0.0.1"
-    port1 = 2056
-    port2 = 3056
-    port3 = 4056
+    port1 = 2050
+    port2 = 3050
+    port3 = 4050
     config1 = [localHost, port1, port2, port3]
     p1 = Process(target=machine, args=(config1, 0))
     config2 = [localHost, port1, port2, port3]
