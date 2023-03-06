@@ -54,7 +54,13 @@ class VirtualMachine:
             # self.log_file.write(f"Machine {self.id} received message {data_val} at global time {time.time()} with new logical clock updated {time_val} from prev time {prev_time} \n")
             # self.log_file.flush()
 
-    
+    def connect(self,ports):
+        sockets = []
+        for p in ports:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self.host, p))
+            sockets.append(s) 
+        return sockets
     def send_message(self, conn):
         # Get the current time from the logical clock
         time_val = self.clock.get_time()
@@ -69,8 +75,9 @@ class VirtualMachine:
         self.log_file.flush()
 
     
-    def run(self):
-        # self.connect()
+    def run(self,ports):
+        # ports = [port1,port2]
+        sockets = self.connect(ports)
         while True:
             if len(self.queue) > 0:
                 data_val, time_val = self.queue.pop(0)
@@ -80,23 +87,19 @@ class VirtualMachine:
             else:
                 rand_val = random.randint(1, 10)
                 if rand_val == 1:
-                    self.send_message(self.get_connection(self.ports[(self.id % 3) - 1]))
+                    self.send_message(sockets[0])
                 elif rand_val == 2:
-                    self.send_message(self.get_connection(self.ports[(self.id + 1) % 3]))
+                    self.send_message(sockets[1])
                 elif rand_val == 3:
-                    self.send_message(self.get_connection(self.ports[(self.id % 3) - 1]))
+                    self.send_message(sockets[0])
                     self.clock.wait()
-                    self.send_message(self.get_connection(self.ports[(self.id + 1) % 3]))
+                    self.send_message(sockets[1])
                 else:
                     self.clock.increment()
                     self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with logical clock updated {self.clock.get_time()}\n")
                     self.log_file.flush()
             self.clock.wait()
             
-    def get_connection(self, port):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((self.host, port))
-        return s
 
 def init_machine(vm):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -117,7 +120,7 @@ def machine(config, idx):
     # Add a delay to initialize the server-side logic on all processes
     time.sleep(1)
     # Extensible to multiple producers
-    prod_thread = threading.Thread(target=vm.run)
+    prod_thread = threading.Thread(target=vm.run, args=(config[2:],))
     prod_thread.start()
 
 if __name__ == '__main__':
@@ -127,9 +130,9 @@ if __name__ == '__main__':
     port3 = 4050
     config1 = [localHost, port1, port2, port3]
     p1 = Process(target=machine, args=(config1, 0))
-    config2 = [localHost, port1, port2, port3]
+    config2 = [localHost, port2,port3, port1]
     p2 = Process(target=machine, args=(config2, 1))
-    config3 = [localHost, port1, port2, port3]
+    config3 = [localHost, port3,port1, port2 ]
     p3 = Process(target=machine, args=(config3, 2))
     p1.start()
     p2.start()
