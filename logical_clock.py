@@ -36,15 +36,6 @@ class VirtualMachine:
         self.queue = []
         self.log_file = open(f"vm_{self.id}.log", "w")
     
-    def connect(self):
-        # Connect to all other virtual machines in the system
-        for port in self.ports:
-            if port != self.ports[self.id]:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((self.host, port))
-                # Start a new thread to receive messages on this socket
-                threading.Thread(target=self.receive_messages, args=(s,)).start()
-    
     def receive_messages(self, conn):
         # Log the connection
         print(f"Connected to {conn.getpeername()}\n")
@@ -56,11 +47,13 @@ class VirtualMachine:
             data_val, time_val = data.decode('ascii').split(",")
             # Add the received message to the local message queue
             self.queue.append((data_val, int(time_val)))
-            # Log the received message
-            self.log_file.write(f"Received message {data_val} at global time {time.time()} with logical clock {time_val}\n")
-            self.log_file.flush()
             # Update the logical clock
+            prev_time = self.clock.get_time()
             self.clock.update(int(time_val))
+            # Log the received message
+            # self.log_file.write(f"Machine {self.id} received message {data_val} at global time {time.time()} with new logical clock updated {time_val} from prev time {prev_time} \n")
+            # self.log_file.flush()
+
     
     def send_message(self, conn):
         # Get the current time from the logical clock
@@ -69,18 +62,19 @@ class VirtualMachine:
         message = f"{self.id},{time_val}"
         # Send the message on the connection
         conn.send(message.encode('ascii'))
-        # Log the sent message
-        self.log_file.write(f"Sent message {message} at global time {time.time()} with logical clock {time_val}\n")
-        self.log_file.flush()
         # Increment the logical clock
         self.clock.increment()
+        # Log the sent message
+        self.log_file.write(f"Machine {self.id} Sent message {message} at global time {time.time()} with current logical clock {time_val}\n")
+        self.log_file.flush()
+
     
     def run(self):
-        self.connect()
+        # self.connect()
         while True:
             if len(self.queue) > 0:
                 data_val, time_val = self.queue.pop(0)
-                self.log_file.write(f"Processed message {data_val} at global time {time.time()} with logical clock {time_val}\n")
+                self.log_file.write(f"Machine {self.id} received message {data_val} at global time {time.time()} with current logical clock {time_val} with current queue length : {len(self.queue)} \n")
                 self.log_file.flush()
                 self.clock.update(int(time_val))
             else:
@@ -91,10 +85,11 @@ class VirtualMachine:
                     self.send_message(self.get_connection(self.ports[(self.id + 1) % 3]))
                 elif rand_val == 3:
                     self.send_message(self.get_connection(self.ports[(self.id % 3) - 1]))
+                    self.clock.wait()
                     self.send_message(self.get_connection(self.ports[(self.id + 1) % 3]))
                 else:
                     self.clock.increment()
-                    self.log_file.write(f"Internal event at global time {time.time()} with logical clock {self.clock.get_time()}\n")
+                    self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with logical clock updated {self.clock.get_time()}\n")
                     self.log_file.flush()
             self.clock.wait()
             
@@ -113,15 +108,14 @@ def init_machine(vm):
     while True:
         conn, addr = s.accept()
         threading.Thread(target=vm.receive_messages, args=(conn,)).start()
-        vm.log_file.write(f"Connection accepted at global time {time.time()} with logical clock {vm.clock.get_time()}\n")
-        vm.log_file.flush()
+        print(f"Connection accepted for vm {vm.id} at global time {time.time()} with logical clock {vm.clock.get_time()}\n")
 
 def machine(config, idx):
     vm = VirtualMachine(config, idx)
     init_thread = threading.Thread(target=init_machine, args=(vm,))
     init_thread.start()
     # Add a delay to initialize the server-side logic on all processes
-    vm.clock.wait()
+    time.sleep(1)
     # Extensible to multiple producers
     prod_thread = threading.Thread(target=vm.run)
     prod_thread.start()
