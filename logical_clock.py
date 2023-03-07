@@ -57,7 +57,7 @@ class VirtualMachine:
         # Increment the logical clock
         self.clock.increment()
         # Log the sent message
-        self.log_file.write(f"Machine {self.id} Sent message {message} at global time {time.time()} with current logical clock {time_val}\n")
+        self.log_file.write(f"Machine {self.id} Sent message {message} at global time {time.time()} with current logical clock {self.clock.get_time()}\n")
         self.log_file.flush()
     def run(self,ports):
         sockets = self.connect(ports)
@@ -65,7 +65,7 @@ class VirtualMachine:
             if len(self.queue) > 0:
                 data_val, time_val = self.queue.pop(0)
                 self.clock.update(int(time_val))
-                self.log_file.write(f"Machine {self.id} received message from Machine {data_val} at global time {time.time()} with current logical clock {time_val} with current queue length : {len(self.queue)} \n")
+                self.log_file.write(f"Machine {self.id} received message from Machine {data_val} whose clocktime when sending the message is {time_val} at global time {time.time()}. Current logical clock for this machine: {self.clock.get_time()} with current queue length : {len(self.queue)}\n")
                 self.log_file.flush()
             else:
                 rand_val = random.randint(1, 10)
@@ -79,7 +79,7 @@ class VirtualMachine:
                     self.send_message(sockets[1])
                 else:
                     self.clock.increment()
-                    self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with logical clock updated {self.clock.get_time()}\n")
+                    self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with current logical lock: {self.clock.get_time()}\n")
                     self.log_file.flush()
             self.clock.wait()
 def init_machine(vm):
@@ -104,9 +104,9 @@ def machine(config, idx):
     prod_thread.start()
 if __name__ == '__main__':
     localHost = "127.0.0.1"
-    port1 = 2050
-    port2 = 3050
-    port3 = 4050
+    port1 = 2051
+    port2 = 3051
+    port3 = 4051
     config1 = [localHost, port1, port2, port3]
     p1 = Process(target=machine, args=(config1, 0))
     config2 = [localHost, port2,port3, port1]
