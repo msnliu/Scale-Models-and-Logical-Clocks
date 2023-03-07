@@ -40,10 +40,6 @@ This code implements a simple version of the Lamport clock algorithm and has a n
 The code assumes that the virtual machines are running on the same physical machine and communicate with each other over a network. In a real distributed system, the machines would be running on separate physical machines and communicate with each other over a network.
 The code does not implement any fault tolerance or error handling mechanisms. In a real distributed system, fault tolerance and error handling would be essential.
 The code does not implement any optimizations to reduce the number of messages exchanged between the machines. In a real distributed system, optimizing the message exchange is critical to performance.
-
-# License
-This code is licensed under the MIT License. See the LICENSE file for details.
-
 # Contributors
 
 Guangya Wan
