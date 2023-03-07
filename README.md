@@ -20,13 +20,20 @@ Run the following command to start the simulation:
 The code will start three virtual machines on ports 2050, 3050, and 4050. Each virtual machine will communicate with the others using the Lamport algorithm to synchronize their logical clocks.
 
 # Implementation Details
-Each virtual machine is implemented as a separate process and runs on its own port. When a virtual machine receives a message from another virtual machine, it updates its logical clock based on the time stamp in the message. If a virtual machine has no messages to process, it generates an internal event and updates its logical clock accordingly.
 
-The Lamport logical clock algorithm is implemented in the LamportClock class. Each virtual machine is represented by the VirtualMachine class. The init_machine function sets up the server-side logic for each virtual machine. The machine function initializes each virtual machine and starts the server-side and client-side logic.
+The LamportClock class represents a logical clock that can be used to synchronize events in a distributed system.
+
+The VirtualMachine class represents a virtual machine that can communicate with other virtual machines and has a logical clock to keep track of events. The run method of the VirtualMachine class is the main function that controls the behavior of the virtual machine. The virtual machine connects to other virtual machines using the connect method and sends messages using the send_message method. The virtual machine also receives messages using the receive_messages method.
+
+The init_machine function initializes the server-side logic on the virtual machine by setting up a socket to listen for incoming connections and starting a thread to handle incoming messages.
+
+The machine function creates and runs a virtual machine with the specified configuration and ID. It starts a thread to initialize the server-side logic on the virtual machine and another thread to run the virtual machine.
+
+In the main section of the code, three virtual machines are created with different configurations and started using Python's multiprocessing library. The join method is used to wait for all processes to complete.
 
 # Output format
 
-The code records the messages sent and received by each virtual machine, as well as the local clock values for each machine at different times. The output is saved in separate log files for each machine (vm_0.log, vm_1.log, and vm_2.log).
+The code records the messages sent and received by each virtual machine, as well as the local clock values for each machine at different times. The output is saved in separate log files for each machine follow by their ids and lock rates (vm_0_1.log, vm_1_5.log, and vm_2_4.log).
 
 The log files contain the following information:
 

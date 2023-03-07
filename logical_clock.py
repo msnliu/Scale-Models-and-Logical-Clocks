@@ -39,7 +39,7 @@ class VirtualMachine:
         self.id = idx
         self.clock = LamportClock(random.randint(1, 6))
         self.queue = []
-        self.log_file = open(f"vm_{self.id}.log", "w")
+        self.log_file = open(f"vm_{self.id}_{self.clock.tick_rate}.log", "w")
     
     def receive_messages(self, conn):
         """Receive messages on a connection and add them to the message queue."""
@@ -134,9 +134,9 @@ def machine(config, idx):
 if __name__ == '__main__':
     # Set up the configurations for the virtual machines
     localHost = "127.0.0.1"
-    port1 = 2051
-    port2 = 3051
-    port3 = 4051
+    port1 = 2050
+    port2 = 3050
+    port3 = 4050
     # Create and start a process for each virtual machine
     config1 = [localHost, port1, port2, port3]
     p1 = Process(target=machine, args=(config1, 0))
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     p3 = Process(target=machine, args=(config3, 2))
 
     # Wait for all processes to complete
-    
+
     p1.start()
     p2.start()
     p3.start()
