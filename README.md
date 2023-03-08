@@ -15,9 +15,9 @@ Clone this repository to your local machine.
 Open a terminal window and navigate to the root directory of the cloned repository.
 Run the following command to start the simulation:
 
-> $ python logical_clock.py
+> $ python logical_clock.py 6 10
 
-The code will start three virtual machines on ports 2050, 3050, and 4050. Each virtual machine will communicate with the others using the Lamport algorithm to synchronize their logical clocks.
+The code will start three virtual machines on ports 3 random ports between 2000 to 20000.6,10 here means the upperbound for the clock rates and Code for internal events respectively. Using a value smaller then 6 implies a smaller range of tick_rates. Using a value smaller than 10 means a lower probability of internal events(thus more send message happening) Each virtual machine will communicate with the others using the Lamport algorithm to synchronize their logical clocks.
 
 # Implementation Details
 
@@ -39,6 +39,18 @@ The log files contain the following information:
 
 Messages sent and received by the machine, along with the global time, the logical clock value of the sender, and the logical clock value of the receiver at the time the message was sent or received.
 Internal events that occur on the machine, along with the global time and the logical clock value of the machine at the time the event occurred.
+
+# Experiments
+
+We have three bash files and viz.py to help us run the experiments required.
+
+* viz.py: The code reads multiple log files in the current directory and extracts information such as logical clock values, queue lengths, and the jump in logical clock values between successive lines in each file. The code then plots the logical clock values, the jump values, and the queue lengths using Matplotlib.
+* plot.sh In summary, this Bash script automates the process of running the logical_clock.py and viz.py scripts multiple times with different output paths, and clears the log files after each run. This can be useful for testing and analyzing the performance of the scripts under different conditions.
+* plot_small_internal.sh &  plot_small_tickrate.sh: In summary, these Bash script are simiar to above except we run with different settings of probability of internal events and tick rates.
+
+Note that we set running time be 1 min and run 5 fives for each bash, but you can play around with the parameter.
+
+See different ourput folder for the results plot.
 
 # Limitation 
 
