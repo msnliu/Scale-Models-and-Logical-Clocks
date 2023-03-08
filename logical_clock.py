@@ -35,9 +35,10 @@ class LamportClock:
 class VirtualMachine:
     def __init__(self, config, idx):
         self.host = config[0]
-        self.ports = config[1:]
+        self.ports = config[3:]
         self.id = idx
-        self.clock = LamportClock(random.randint(1, 6))
+        self.clock = LamportClock(random.randint(1, config[1]))
+        self.internal_upper = config[2]
         self.queue = []
         self.log_file = open(f"vm_{self.id}_{self.clock.tick_rate}.log", "w")
     
@@ -89,21 +90,20 @@ class VirtualMachine:
                 self.log_file.flush()
             else:
                 # Otherwise, randomly send a message, wait, or increment the clock
-                rand_val = random.randint(1,10)
-            if rand_val == 1:
-                self.send_message(sockets[0])
-            elif rand_val == 2:
-                self.send_message(sockets[1])
-            elif rand_val == 3:
-                # If rand_val is 3, send a message to the first machine, wait for a random amount of time, and then send a message to the second machine
-                self.send_message(sockets[0])
-                self.clock.wait()
-                self.send_message(sockets[1])
-            else:
-                # If rand_val is greater than 3, increment the clock and log an internal event
-                self.clock.increment()
-                self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with current logical lock: {self.clock.get_time()}\n")
-                self.log_file.flush()
+                rand_val = random.randint(1,self.internal_upper)
+                if rand_val == 1:
+                    self.send_message(sockets[0])
+                elif rand_val == 2:
+                    self.send_message(sockets[1])
+                elif rand_val == 3:
+                    # If rand_val is 3, send a message to the first machine, wait for a random amount of time, and then send a message to the second machine
+                    self.send_message(sockets[0])
+                    self.send_message(sockets[1])
+                else:
+                    # If rand_val is greater than 3, increment the clock and log an internal event
+                    self.clock.increment()
+                    self.log_file.write(f"Machine {self.id} internal event at global time {time.time()} with current logical lock: {self.clock.get_time()}\n")
+                    self.log_file.flush()
         # Wait for a certain amount of time based on the tick rate
             self.clock.wait()
 def init_machine(vm):
@@ -127,7 +127,7 @@ def machine(config, idx):
     # Add a delay to initialize the server-side logic on all processes
     time.sleep(1)
     # Extensible to multiple producers
-    prod_thread = threading.Thread(target=vm.run, args=(config[2:],))
+    prod_thread = threading.Thread(target=vm.run, args=(config[4:],))
     prod_thread.start()
 
 
@@ -137,12 +137,14 @@ if __name__ == '__main__':
     port1 = 2050
     port2 = 3050
     port3 = 4050
+    clock_rate_upper = 2
+    internal_event_upper = 5
     # Create and start a process for each virtual machine
-    config1 = [localHost, port1, port2, port3]
+    config1 = [localHost, clock_rate_upper,internal_event_upper,port1, port2, port3]
     p1 = Process(target=machine, args=(config1, 0))
-    config2 = [localHost, port2,port3, port1]
+    config2 = [localHost, clock_rate_upper,internal_event_upper,port2,port3, port1]
     p2 = Process(target=machine, args=(config2, 1))
-    config3 = [localHost, port3,port1, port2 ]
+    config3 = [localHost, clock_rate_upper,internal_event_upper,port3,port1, port2 ]
     p3 = Process(target=machine, args=(config3, 2))
 
     # Wait for all processes to complete
